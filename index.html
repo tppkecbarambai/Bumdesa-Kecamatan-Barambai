@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data BUMDes Kecamatan Barambai</title>
+  <style>
+    :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --accent: #0ea5e9; --border: #e2e8f0; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --border: #334155; }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 16px; }
+   .container { max-width: 1200px; margin: auto; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    h1 { font-size: 1.5rem; }
+   .btn { background: var(--accent); color: white; padding: 10px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; }
+   .controls { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    input, select { padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); flex: 1; min-width: 200px; }
+   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+   .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+   .card h3 { margin-bottom: 8px; color: var(--accent); }
+   .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-top: 8px; }
+   .badge.Berjalan { background: #dcfce7; color: #166534; }
+   .badge.BelumJalan { background: #fee2e2; color: #991b1b; }
+   .badge.Selesai { background: #dbeafe; color: #1e40af; }
+   .stats { display: flex; justify-content: space-between; margin-top: 12px; font-size: 0.9rem; opacity: 0.8; }
+   .loading,.footer-note { text-align: center; padding: 20px; opacity: 0.6; font-size: 0.9rem; }
+    @media (max-width: 640px) { h1 { font-size: 1.25rem; }.grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Data BUMDes Kec. Barambai</h1>
+      <a href="https://tppkecamatanbarambai.blogspot.com/p/dasboard-progres-pendampingan.html?m=1" class="btn">← Kembali ke Dashboard</a>
+    </header>
+
+    <div class="controls">
+      <input type="text" id="search" placeholder="Cari nama BUMDes atau desa...">
+      <select id="filterStatus">
+        <option value="">Semua Status</option>
+        <option value="Berjalan">Berjalan</option>
+        <option value="Belum Jalan">Belum Jalan</option>
+        <option value="Selesai">Selesai</option>
+      </select>
+    </div>
+
+    <div class="grid" id="bumdesGrid">
+      <div class="loading">Memuat data dari Google Sheets...</div>
+    </div>
+    <div class="footer-note" id="lastUpdate"></div>
+  </div>
+
+  <script>
+    // GANTI LINK INI PAKAI LINK CSV DARI SHEETS KAMU
+    const SHEET_URL = 'PASTE_LINK_CSV_DISINI';
+
+    let dataBUMDes = [];
+
+    function csvToArray(csv) {
+      const lines = csv.trim().split('\n');
+      const headers = lines[0].split(',').map(h => h.trim());
+      return lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+        const obj = {};
+        headers.forEach((header, i) => { obj[header] = values[i] || ''; });
+        return obj;
+      });
+    }
+
+    function formatRupiah(angka) {
+      const num = parseInt(angka || 0);
+      return 'Rp ' + num.toLocaleString('id-ID');
+    }
+
+    async function loadData() {
+      if (SHEET_URL === 'PASTE_LINK_CSV_DISINI') {
+        document.getElementById('bumdesGrid').innerHTML =
+          '<div class="loading">Ganti SHEET_URL dulu di kode HTML dengan link CSV kamu ya</div>';
+        return;
+      }
+      try {
+        const res = await fetch(SHEET_URL);
+        const csv = await res.text();
+        dataBUMDes = csvToArray(csv);
+        renderData(dataBUMDes);
+        document.getElementById('lastUpdate').textContent =
+          `Terakhir dicek: ${new Date().toLocaleString('id-ID')} | Data update dari Sheets butuh ±5 menit`;
+      } catch (e) {
+        document.getElementById('bumdesGrid').innerHTML =
+          '<div class="loading">Gagal memuat data. Pastikan link CSV sudah benar & sudah di-publish.</div>';
+      }
+    }
+
+    const grid = document.getElementById('bumdesGrid');
+    const searchInput = document.getElementById('search');
+    const filterStatus = document.getElementById('filterStatus');
+
+    function renderData(data) {
+      if (data.length === 0) {
+        grid.innerHTML = '<div class="loading">Belum ada data di Google Sheets</div>';
+        return;
+      }
+      grid.innerHTML = data.map(item => `
+        <div class="card">
+          <h3>${item.nama_bumdes}</h3>
+          <p><strong>Desa:</strong> ${item.desa}</p>
+          <p><strong>Ketua:</strong> ${item.ketua}</p>
+          <p><strong>Unit Usaha:</strong> ${item.unit_usaha}</p>
+          <div class="stats">
+            <span><strong>Omzet:</strong> ${formatRupiah(item.omzet)}</span>
+            <span><strong>Progres:</strong> ${item.progres}%</span>
+          </div>
+          <span class="badge ${item.status.replace(' ', '')}">${item.status}</span>
+        </div>
+      `).join('');
+    }
+
+    function filterData() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const statusFilter = filterStatus.value;
+      const filtered = dataBUMDes.filter(item => {
+        const matchSearch = item.nama_bumdes.toLowerCase().includes(searchTerm) ||
+                           item.desa.toLowerCase().includes(searchTerm);
+        const matchStatus = statusFilter === '' || item.status === statusFilter;
+        return matchSearch && matchStatus;
+      });
+      renderData(filtered);
+    }
+
+    searchInput.addEventListener('input', filterData);
+    filterStatus.addEventListener('change', filterData);
+    loadData();
+  </script>
+</body>
+</html>
