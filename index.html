@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard BUMDes Kecamatan Barambai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f7fa; --card: #ffffff; --text: #1e293b; --text-secondary: #64748b;
+      --accent: #3b82f6; --accent-hover: #2563eb; --border: #e2e8f0;
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8; --border: #334155;
+        --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+.container { max-width: 1280px; margin: auto; padding: 24px 16px; }
+    header { margin-bottom: 32px; }
+.header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+    h1 { font-size: 1.875rem; font-weight: 700; letter-spacing: -0.025em; }
+.header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn { background: var(--accent); color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.875rem; transition: all 0.2s; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: var(--shadow); }
+.btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--bg); }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: linear-gradient(135deg, var(--accent) 0%, #1d4ed8 100%); color: white; border-radius: 16px; padding: 20px; box-shadow: var(--shadow); }
+.stat-card.secondary { background: linear-gradient(135deg, var(--success) 0%, #059669 100%); }
+.stat-label { font-size: 0.875rem; opacity: 0.9; margin-bottom: 8px; font-weight: 500; }
+.stat-value { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.025em; }
+.controls { display: flex; gap: 12px; flex-wrap: wrap; }
+    input, select { padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text); flex: 1; min-width: 240px; font-size: 0.9rem; transition: all 0.2s; }
+    input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; transition: all 0.2s; box-shadow: var(--shadow); cursor: pointer; }
+.card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+.card-header { margin-bottom: 16px; }
+.card h3 { font-size: 1.125rem; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+.card-desa { font-size: 0.875rem; color: var(--text-secondary); font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.card-body p { font-size: 0.9rem; margin-bottom: 8px; display: flex; justify-content: space-between; gap: 16px; }
+.card-body p strong { color: var(--text-secondary); font-weight: 500; flex-shrink: 0; }
+.card-body p span { text-align: right; font-weight: 600; word-break: break-word; }
+.card-footer { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+.badge.Berjalan { background: #d1fae5; color: #065f46; }
+.badge.Selesai { background: #dbeafe; color: #1e40af; }
+.badge.BelumJalan,.badge.Belum { background: #fee2e2; color: #991b1b; }
+.progress-bar { width: 100%; height: 8px; background: var(--border); border-radius: 8px; overflow: hidden; margin-top: 12px; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 8px; transition: width 0.5s ease; }
+.loading { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+.skeleton { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; background: var(--border); border-radius: 16px; height: 300px; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity:.5; } }
+.footer-note { text-align: center; padding: 24px; font-size: 0.8rem; color: var(--text-secondary); }
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+.modal.active { display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modal-content { background: var(--card); border-radius: 16px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); animation: slideUp 0.3s ease; }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-header { padding: 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: start; }
+.modal-header h2 { font-size: 1.5rem; color: var(--accent); }
+.close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); line-height: 1; }
+.modal-body { padding: 24px; }
+.detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); gap: 16px; }
+.detail-row:last-child { border-bottom: none; }
+.detail-label { font-weight: 500; color: var(--text-secondary); flex-shrink: 0; }
+.detail-value { font-weight: 600; text-align: right; word-break: break-word; }
+.detail-value a { color: var(--accent); text-decoration: none; }
+.detail-value a:hover { text-decoration: underline; }
+    @media (max-width: 640px) { h1 { font-size: 1.5rem; }.grid { grid-template-columns: 1fr; }.container { padding: 16px 12px; }.stats-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-top">
+        <h1>Dashboard BUMDes Kec. Barambai</h1>
+        <div class="header-actions">
+          <button class="btn btn-secondary" onclick="exportToExcel()">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0.768.64L8 10.781l2.116 2.54a.5.5 0 0 0.768-.641L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/></svg>
+            Export Excel
+          </button>
+          <a href="https://tppkecamatanbarambai.blogspot.com/p/dasboard-progres-pendampingan.html?m=1" class="btn">← Dashboard</a>
+        </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Penyertaan Modal Desa</div>
+          <div class="stat-value" id="totalModal">Rp 0</div>
+        </div>
+        <div class="stat-card secondary">
+          <div class="stat-label">Total BUMDes Terdata</div>
+          <div class="stat-value" id="totalBumdes">0</div>
+        </div>
+      <div class="controls">
+        <input type="text" id="search" placeholder="Cari nama BUMDes atau desa...">
+        <select id="filterStatus">
+          <option value="">Semua Status</option>
+          <option value="Berjalan">Berjalan</option>
+          <option value="Belum Jalan">Belum Jalan</option>
+          <option value="Selesai">Selesai</option>
+        </select>
+      </div>
+    </header>
+    <div class="grid" id="bumdesGrid">
+      <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+    </div>
+    <div class="footer-note" id="lastUpdate"></div>
+  </div>
+  <div class="modal" id="detailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Detail BUMDes</h2>
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+  <script>
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmV7BDNhB2tEtDJMq5ekvefxLEAZNAYD675EVkVxKpzeH9HXHyc0n7X-K1YUTwLw/pub?gid=481562859&single=true&output=csv';
+    let dataBUMDes = [];
+    let filteredData = [];
+
+    function csvToArray(csv) {
+      const lines = csv.trim().split('\n');
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      return lines.slice(1).map(line => {
+        const values = [];
+        let current = '';
+        let inQuotes = false;
+        for (let char of line) {
+          if (char === '"') inQuotes =!inQuotes;
+          else if (char === ',' &&!inQuotes) { values.push(current.trim()); current = ''; }
+          else current += char;
+        }
+        values.push(current.trim());
+        const obj = {};
+        headers.forEach((header, i) => { obj[header] = (values[i] || '').replace(/"/g, ''); });
+        return obj;
+      });
+    }
+
+    function formatRupiah(angka) {
+      if (!angka) return 'Rp 0';
+      const num = parseInt(String(angka).replace(/[^0-9]/g, '')) || 0;
+      return 'Rp ' + num.toLocaleString('id-ID');
+    }
+
+    // FUNGSI PINTAR - Cari kolom tanpa peduli spasi, underscore, besar-kecil
+    function getField(item,...possibleNames) {
+      const keys = Object.keys(item);
+      for (let name of possibleNames) {
+        const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const foundKey = keys.find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === normalized);
+        if (foundKey && item[foundKey]!== '') return item[foundKey];
+      }
+      return '';
+    }
+
+    function getNumber(item,...possibleNames) {
+      const val = getField(item,...possibleNames);
+      return parseInt(String(val).replace(/[^0-9]/g, '')) || 0;
+    }
+
+    function updateStats(data) {
+      const totalModal = data.reduce((sum, item) => sum + getNumber(item, 'penyertaan_modal_desa', 'penyertaan_modal', 'modal_desa', 'modal', 'penyertaan modal desa'), 0);
+      document.getElementById('totalModal').textContent = formatRupiah(totalModal);
+      document.getElementById('totalBumdes').textContent = data.length;
+    }
+
+    async function loadData() {
+      try {
+        const res = await fetch(SHEET_URL);
+        const csv = await res.text();
+        dataBUMDes = csvToArray(csv);
+        filteredData = dataBUMDes;
+        updateStats(dataBUMDes);
+        renderData(filteredData);
+        document.getElementById('lastUpdate').textContent =
+          `Data dimuat: ${new Date().toLocaleString('id-ID')}`;
+      } catch (e) {
+        document.getElementById('bumdesGrid').innerHTML =
+          '<div class="loading">Gagal memuat data. Cek koneksi atau link Sheets.</div>';
+      }
+    }
+
+    const grid = document.getElementById('bumdesGrid');
+
+    function renderData(data) {
+      if (data.length === 0) {
+        grid.innerHTML = '<div class="loading">Tidak ada data yang cocok</div>';
+        return;
+      }
+      grid.innerHTML = data.map((item, index) => {
+        const nama = getField(item, 'nama_bumdes', 'nama bumdes', 'bumdes');
+        const desa = getField(item, 'nama_desa', 'nama desa', 'desa');
+        const ketua = getField(item, 'ketua', 'nama_ketua', 'nama ketua');
+        const unitUsaha = getField(item, 'unit_usaha', 'unit usaha', 'jenis_usaha', 'usaha');
+        const omzet = getField(item, 'omzet', 'omset', 'omzet/bulan');
+        const progres = parseInt(getField(item, 'progres', 'progress', 'progres (%)')) || 0;
+        const status = getField(item, 'status_pendampingan', 'status', 'status pendampingan');
+        const modalDesa = getField(item, 'penyertaan_modal_desa', 'penyertaan_modal', 'modal_desa', 'modal', 'penyertaan modal desa');
+        const statusClass = status.replace(/\s+/g, '');
+
+        return `
+        <div class="card" onclick="showDetail(${index})">
+          <div class="card-header">
+            <h3>${nama || 'Tanpa Nama'}</h3>
+            <div class="card-desa">
+              <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
+              Desa ${desa || '-'}
+            </div>
+          </div>
+          <div class="card-body">
+            <p><strong>Ketua:</strong> <span>${ketua || '-'}</span></p>
+            <p><strong>Unit Usaha:</strong> <span>${unitUsaha || '-'}</span></p>
+            <p><strong>Omzet:</strong> <span>${formatRupiah(omzet)}</span></p>
+            ${modalDesa? `<p><strong>Modal Desa:</strong> <span>${formatRupiah(modalDesa)}</span></p>` : ''}
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${progres}%"></div>
+          </div>
+          <div class="card-footer">
+            <span class="badge ${statusClass}">${status || 'Belum Ada Status'}</span>
+            <span style="font-size:0.875rem; font-weight:600; color:var(--text-secondary);">${progres}%</span>
+          </div>
+        </div>
+      `;
+      }).join('');
+    }
+
+    function showDetail(index) {
+      const item = filteredData[index];
+      const kontakKetua = getField(item, 'no_hp_ketua', 'kontak_ketua', 'no_kontak', 'telepon', 'hp_ketua', 'no hp ketua');
+      const fields = [
+        ['Nama BUMDes', getField(item, 'nama_bumdes', 'nama bumdes', 'bumdes')],
+        ['Desa', getField(item, 'nama_desa', 'nama desa', 'desa')],
+        ['Ketua', getField(item, 'ketua', 'nama_ketua', 'nama ketua')],
+        ['Kontak Ketua', kontakKetua? `<a href="https://wa.me/${kontakKetua.replace(/[^0-9]/g, '')}" target="_blank">${kontakKetua}</a>` : ''],
+        ['Unit Usaha', getField(item, 'unit_usaha', 'unit usaha', 'jenis_usaha', 'usaha')],
+        ['Omzet/Bulan', formatRupiah(getField(item, 'omzet', 'omset', 'omzet/bulan'))],
+        ['Penyertaan Modal Desa', formatRupiah(getField(item, 'penyertaan_modal_desa', 'penyertaan_modal', 'modal_desa', 'modal', 'penyertaan modal desa'))],
+        ['No. Perdes Pendirian', getField(item, 'no_perdes_pendirian', 'no_perdes', 'nomor_perdes', 'perdes', 'no perdes pendirian')],
+        ['No. AHU BUMDes', getField(item, 'no_ahu', 'nomor_ahu', 'ahu', 'no ahu')],
+        ['Progres', getField(item, 'progres', 'progress', 'progres (%)') + '%'],
+        ['Status', getField(item, 'status_pendampingan', 'status', 'status pendampingan')],
+        ['Alamat', getField(item, 'alamat')],
+      ].filter(([_, val]) => val && val!== '-' && val!== 'Rp 0' && val!== '%');
+
+      document.getElementById('modalTitle').textContent = getField(item, 'nama_bumdes', 'nama bumdes', 'bumdes');
+      document.getElementById('modalBody').innerHTML = fields.map(([label, value]) => `
+        <div class="detail-row">
+          <div class="detail-label">${label}</div>
+          <div class="detail-value">${value}</div>
+        </div>
+      `).join('');
+      document.getElementById('detailModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('detailModal').classList.remove('active');
+    }
+
+    function exportToExcel() {
+      const headers = ['Nama BUMDes','Desa','Ketua','Kontak Ketua','Unit Usaha','Omzet','Penyertaan Modal','No Perdes','No AHU','Progres','Status'];
+      let csv = headers.join(',') + '\n';
+      filteredData.forEach(item => {
+        const row = [
+          getField(item, 'nama_bumdes', 'nama bumdes', 'bumdes'),
+          getField(item, 'nama_desa', 'nama desa', 'desa'),
+          getField(item, 'ketua', 'nama_ketua', 'nama ketua'),
+          getField(item, 'no_hp_ketua', 'kontak_ketua', 'no_kontak', 'telepon', 'hp_ketua'),
+          getField(item, 'unit_usaha', 'unit usaha', 'jenis_usaha', 'usaha'),
+          getField(item, 'omzet', 'omset', 'omzet/bulan'),
+          getField(item, 'penyertaan_modal_desa', 'penyertaan_modal', 'modal_desa', 'modal'),
+          getField(item, 'no_perdes_pendirian', 'no_perdes', 'nomor_perdes', 'perdes'),
+          getField(item, 'no_ahu', 'nomor_ahu', 'ahu'),
+          getField(item, 'progres', 'progress', 'progres (%)'),
+          getField(item, 'status_pendampingan', 'status', 'status pendampingan')
+        ].map(val => `"${val}"`).join(',');
+        csv += row + '\n';
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `Data_BUMDes_Barambai_${new Date().toISOString().split('T')[0]}.xls`;
+      link.click();
+    }
+
+    function filterData() {
+      const searchTerm = document.getElementById('search').value.toLowerCase();
+      const statusFilter = document.getElementById('filterStatus').value;
+      filteredData = dataBUMDes.filter(item => {
+        const nama = getField(item, 'nama_bumdes', 'nama bumdes', 'bumdes').toLowerCase();
+        const desa = getField(item, 'nama_desa', 'nama desa', 'desa').toLowerCase();
+        const status = getField(item, 'status_pendampingan', 'status', 'status pendampingan');
+        const matchSearch = nama.includes(searchTerm) || desa.includes(searchTerm);
+        const matchStatus = statusFilter === '' || status === statusFilter;
+        return matchSearch && matchStatus;
+      });
+      renderData(filteredData);
+    }
+
+    document.getElementById('search').addEventListener('input', filterData);
+    document.getElementById('filterStatus').addEventListener('change', filterData);
+    document.getElementById('detailModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('detailModal')) closeModal();
+    });
+    loadData();
+  </script>
+</body>
+</html>
