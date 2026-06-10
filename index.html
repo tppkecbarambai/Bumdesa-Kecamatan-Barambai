@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard BUMDes Kecamatan Barambai</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" integrity="sha512-dfX5uYVXzyU8+KHU8zJUKmWgJyf5f9y1HPa8D4UNgq6tNVj8HZx2v3g2vet9/qvKlVK0KZ+4w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha512-r22gChDnGvBylk90+2e/ycr3RVrDiavNNoCmtMSdo8wG2v+5frgE8UYMFMQEmGR3q1F44hDE2V25kUMMJd5Sjg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<style>
+  :root {
+    --primary: #0f766e;
+    --primary-dark: #0d5c55;
+    --accent: #14b8a6;
+  }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+  .gradient-bg {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  }
+  .card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  }
+  .leaflet-popup-content-wrapper {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  }
+  .custom-marker {
+    background: var(--primary);
+    border: 3px solid white;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+  }
+  .progress-bar {
+    transition: width 1s ease-in-out;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -29px;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: #e5e7eb;
+  }
+  .timeline-dot {
+    position: absolute;
+    left: -36px;
+    top: 4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 3px solid white;
+    box-shadow: 0 0 0 2px #e5e7eb;
+    z-index: 10;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-slide-in {
+    animation: slideIn 0.5s ease-out forwards;
+  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <!-- Header -->
+  <header class="gradient-bg text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="bg-white/20 p-3 rounded-xl backdrop-blur">
+            <i class="fas fa-building-columns text-2xl"></i>
+          </div>
+          <div>
+            <h1 class="text-2xl md:text-3xl font-bold">Dashboard BUMDes</h1>
+            <p class="text-sm text-teal-50">Kecamatan Barambai, Kab. Barito Kuala</p>
+          </div>
+        <div class="flex items-center gap-2">
+          <button id="btnRefresh" class="bg-white/20 hover:bg-white/30 backdrop-blur px-4 py-2 rounded-lg transition flex items-center gap-2">
+            <i class="fas fa-sync-alt"></i>
+            <span class="hidden sm:inline">Refresh Data</span>
+          </button>
+          <button id="btnExport" class="bg-white text-teal-700 hover:bg-teal-50 px-4 py-2 rounded-lg transition font-semibold flex items-center gap-2">
+            <i class="fas fa-file-excel"></i>
+            <span class="hidden sm:inline">Export Excel</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Loading -->
+  <div id="loading" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-[100] flex items-center justify-center">
+    <div class="text-center">
+      <div class="w-16 h-16 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin mx-auto mb-4"></div>
+      <p class="text-slate-600 font-medium">Memuat data BUMDes...</p>
+    </div>
+  </div>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Statistik Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-2xl p-6 shadow-sm card-hover border border-slate-100">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-sm text-slate-500 mb-1">Total BUMDes</p>
+            <h3 id="statTotalBumdes" class="text-3xl font-bold text-slate-900">0</h3>
+          </div>
+          <div class="bg-teal-100 text-teal-600 p-3 rounded-xl">
+            <i class="fas fa-store text-xl"></i>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 mt-3">Terdaftar di Kecamatan Barambai</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-sm card-hover border border-slate-100">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-sm text-slate-500 mb-1">Total Modal Desa</p>
+            <h3 id="statTotalModal" class="text-3xl font-bold text-slate-900">Rp 0</h3>
+          </div>
+          <div class="bg-emerald-100 text-emerald-600 p-3 rounded-xl">
+            <i class="fas fa-sack-dollar text-xl"></i>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 mt-3">Akumulasi penyertaan modal</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-sm card-hover border border-slate-100">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-sm text-slate-500 mb-1">Total Omzet/Bulan</p>
+            <h3 id="statTotalOmzet" class="text-3xl font-bold text-slate-900">Rp 0</h3>
+          </div>
+          <div class="bg-amber-100 text-amber-600 p-3 rounded-xl">
+            <i class="fas fa-chart-line text-xl"></i>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 mt-3">Estimasi per bulan</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-sm card-hover border border-slate-100">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-sm text-slate-500 mb-1">Rata-rata Progres</p>
+            <h3 id="statAvgProgres" class="text-3xl font-bold text-slate-900">0%</h3>
+          </div>
+          <div class="bg-blue-100 text-blue-600 p-3 rounded-xl">
+            <i class="fas fa-bars-progress text-xl"></i>
+          </div>
+        </div>
+        <div class="w-full bg-slate-200 rounded-full h-2 mt-3">
+          <div id="statProgressBar" class="bg-blue-600 h-2 rounded-full progress-bar" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-8">
+      <div class="flex items-center gap-2 mb-4">
+        <i class="fas fa-filter text-teal-600"></i>
+        <h2 class="text-lg font-semibold">Filter Data</h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="text-sm text-slate-600 mb-1 block">Cari BUMDes/Desa</label>
+          <input id="filterSearch" type="text" placeholder="Ketik nama..." class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none">
+        </div>
+        <div>
+          <label class="text-sm text-slate-600 mb-1 block">Unit Usaha</label>
+          <select id="filterUnitUsaha" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none">
+            <option value="">Semua Unit Usaha</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm text-slate-600 mb-1 block">Omzet Minimal</label>
+          <select id="filterOmzet" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none">
+            <option value="0">Semua Omzet</option>
+            <option value="1000000">> Rp 1 Juta</option>
+            <option value="5000000">> Rp 5 Juta</option>
+            <option value="10000000">> Rp 10 Juta</option>
+            <option value="50000000">> Rp 50 Juta</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm text-slate-600 mb-1 block">Status Pendampingan</label>
+          <select id="filterStatus" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none">
+            <option value="">Semua Status</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Map & Timeline -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="p-6 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-map-marker-alt text-teal-600"></i>
+            <h2 class="text-lg font-semibold">Peta Sebaran BUMDes</h2>
+          </div>
+        <div id="map" class="w-full h-[500px]"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100">
+        <div class="p-6 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-timeline text-teal-600"></i>
+            <h2 class="text-lg font-semibold">Timeline Pendampingan</h2>
+          </div>
+        </div>
+        <div id="timeline" class="p-6 max-h-[500px] overflow-y-auto scrollbar-hide relative">
+          <p class="text-slate-500 text-sm text-center">Memuat timeline...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cards Grid -->
+    <div>
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-slate-900">Daftar BUMDes <span id="bumdesCount" class="text-sm font-normal text-slate-500"></span></h2>
+      </div>
+      <div id="cardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      </div>
+      <div id="noData" class="hidden text-center py-16">
+        <i class="fas fa-inbox text-6xl text-slate-300 mb-4"></i>
+        <p class="text-slate-500">Tidak ada data yang sesuai filter</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Detail -->
+  <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div class="gradient-bg text-white p-6 flex items-start justify-between">
+        <div>
+          <h3 id="modalTitle" class="text-2xl font-bold mb-1"></h3>
+          <p id="modalSubtitle" class="text-teal-50 text-sm"></p>
+        </div>
+        <button id="btnCloseModal" class="text-white/80 hover:text-white text-2xl leading-none">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="modalContent" class="p-6 overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <footer class="bg-slate-900 text-slate-400 py-8 mt-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
+      <p>&copy; 2024 Dashboard BUMDes Kecamatan Barambai. Data bersumber dari Google Sheets.</p>
+    </div>
+  </footer>
+
+<script>
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTmV7BDNhB2tEtDJMq5ekvefxLEAZNAYD675EVkVxKpzeH9HXHyc0n7X-K1YUTwLw/pub?gid=481562859&single=true&output=csv';
+
+let rawData = [];
+let filteredData = [];
+let map = null;
+let markers = [];
+
+const COLUMN_MAP = {
+  nama_bumdes: ['nama_bumdes', 'nama bumdes', 'bumdes'],
+  nama_desa: ['nama_desa', 'nama desa', 'desa'],
+  ketua: ['ketua', 'nama_ketua', 'direktur', 'nama_direktur'],
+  no_hp_ketua: ['no_hp_ketua', 'kontak_ketua', 'no_kontak', 'telepon', 'hp_ketua'],
+  unit_usaha: ['unit_usaha', 'unit usaha', 'jenis_usaha', 'usaha'],
+  omzet: ['omzet', 'omset'],
+  penyertaan_modal_desa: ['penyertaan_modal_desa', 'penyertaan_modal', 'modal_desa', 'modal'],
+  no_perdes_pendirian: ['no_perdes_pendirian', 'no_perdes', 'nomor_perdes', 'perdes'],
+  no_ahu: ['no_ahu', 'nomor_ahu', 'ahu'],
+  progres: ['progres', 'progress'],
+  status_pendampingan: ['status_pendampingan', 'status', 'status pendampingan'],
+  npwp: ['npwp_bumdes', 'npwp'],
+  no_rekening: ['no_rekening', 'rekening'],
+  tanggal_berdiri: ['tanggal_berdiri', 'tgl_berdiri', 'tanggal berdiri'],
+  jumlah_karyawan: ['jumlah_karyawan', 'karyawan'],
+  nib: ['nib', 'nomor_nib'],
+  sertifikat_halal: ['sertifikat_halal', 'halal'],
+  link_gmaps: ['link_gmaps', 'gmaps', 'google_maps'],
+  link_foto: ['link_foto', 'foto'],
+  link_ad_art: ['link_ad_art', 'ad_art', 'adart'],
+  email: ['email_bumdes', 'email'],
+  latitude: ['latitude', 'lat'],
+  longitude: ['longitude', 'lng', 'long'],
+  tgl_mulai_pendampingan: ['tgl_mulai_pendampingan', 'tanggal_mulai'],
+  tgl_target_selesai: ['tgl_target_selesai', 'target_selesai'],
+  tgl_selesai_aktual: ['tgl_selesai_aktual', 'selesai_aktual']
+};
+
+function getField(row, key) {
+  const cols = COLUMN_MAP[key] || [key];
+  for (const col of cols) {
+    if (row[col] !== undefined && row[col] !== null && row[col] !== '') {
+      return row[col];
+    }
+  }
+  return '';
+}
+
+function parseNumber(val) {
+  if (!val) return 0;
+  return parseFloat(String(val).replace(/[^0-9.-]/g, '')) || 0;
+}
+
+function formatRupiah(num) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(num);
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function getBadge(status, type = 'default') {
+  const configs = {
+    nib: { true: 'NIB', false: 'Belum NIB', icon: 'fa-certificate' },
+    halal: { true: 'Sertifikat Halal', false: 'Belum Halal', icon: 'fa-seal' },
+    karyawan: { icon: 'fa-users' }
+  };
+  
+  if (type === 'karyawan') {
+    return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+      <i class="fas ${configs.karyawan.icon}"></i> ${status} Karyawan
+    </span>`;
+  }
+  
+  const val = String(status).toLowerCase();
+  const isTrue = val === 'ya' || val === 'sudah' || val === 'true' || val === '1' || val.length > 3;
+  const config = configs[type];
+  
+  return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${isTrue ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">
+    <i class="fas ${config.icon}"></i> ${isTrue ? config.true : config.false}
+  </span>`;
+}
+
+function initMap() {
+  map = L.map('map').setView([-3.011, 114.59], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(map);
+}
+
+function updateMap() {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  
+  const bounds = [];
+  filteredData.forEach(item => {
+    const lat = parseFloat(getField(item, 'latitude'));
+    const lng = parseFloat(getField(item, 'longitude'));
+    if (isNaN(lat) || isNaN(lng)) return;
+    
+    const icon = L.divIcon({
+      html: `<div class="custom-marker"><i class="fas fa-store text-white text-sm"></i></div>`,
+      className: '',
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32]
+    });
+    
+    const marker = L.marker([lat, lng], { icon }).addTo(map);
+    marker.bindPopup(`
+      <div class="p-2">
+        <h4 class="font-bold text-slate-900 mb-1">${getField(item, 'nama_bumdes') || 'BUMDes'}</h4>
+        <p class="text-sm text-slate-600 mb-2">Desa ${getField(item, 'nama_desa')}</p>
+        <button onclick="showDetail(${rawData.indexOf(item)})" class="text-xs bg-teal-600 text-white px-3 py-1.5 rounded-lg hover:bg-teal-700">
+          Lihat Detail
+        </button>
+      </div>
+    `);
+    markers.push(marker);
+    bounds.push([lat, lng]);
+  });
+  
+  if (bounds.length > 0) {
+    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
+  }
+}
+
+function updateStats() {
+  const total = filteredData.length;
+  const totalModal = filteredData.reduce((sum, item) => sum + parseNumber(getField(item, 'penyertaan_modal_desa')), 0);
+  const totalOmzet = filteredData.reduce((sum, item) => sum + parseNumber(getField(item, 'omzet')), 0);
+  const avgProgres = total > 0 ? filteredData.reduce((sum, item) => sum + parseNumber(getField(item, 'progres')), 0) / total : 0;
+  
+  document.getElementById('statTotalBumdes').textContent = total;
+  document.getElementById('statTotalModal').textContent = formatRupiah(totalModal);
+  document.getElementById('statTotalOmzet').textContent = formatRupiah(totalOmzet);
+  document.getElementById('statAvgProgres').textContent = Math.round(avgProgres) + '%';
+  document.getElementById('statProgressBar').style.width = avgProgres + '%';
+  document.getElementById('bumdesCount').textContent = `(${total} BUMDes)`;
+}
+
+function renderCards() {
+  const grid = document.getElementById('cardsGrid');
+  const noData = document.getElementById('noData');
+  
+  if (filteredData.length === 0) {
+    grid.innerHTML = '';
+    noData.classList.remove('hidden');
+    return;
+  }
+  
+  noData.classList.add('hidden');
+  grid.innerHTML = filteredData.map((item, idx) => {
+    const realIdx = rawData.indexOf(item);
+    const progres = parseNumber(getField(item, 'progres'));
+    const omzet = parseNumber(getField(item, 'omzet'));
+    const modal = parseNumber(getField(item, 'penyertaan_modal_desa'));
+    
+    return `
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-hover animate-slide-in" style="animation-delay: ${idx * 50}ms">
+        <div class="p-6">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex-1">
+              <h3 class="text-lg font-bold text-slate-900 mb-1">${getField(item, 'nama_bumdes') || 'BUMDes'}</h3>
+              <p class="text-sm text-slate-500 flex items-center gap-1">
+                <i class="fas fa-map-pin text-xs"></i> Desa ${getField(item, 'nama_desa') || '-'}
+              </p>
+            </div>
+          </div>
+          
+          <div class="space-y-3 mb-4">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-slate-600">Unit Usaha</span>
+              <span class="font-medium text-slate-900">${getField(item, 'unit_usaha') || '-'}</span>
+            </div>
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-slate-600">Omzet/Bulan</span>
+              <span class="font-semibold text-emerald-600">${formatRupiah(omzet)}</span>
+            </div>
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-slate-600">Modal Desa</span>
+              <span class="font-medium text-slate-900">${formatRupiah(modal)}</span>
+            </div>
+          </div>
+          
+          <div class="mb-4">
+            <div class="flex items-center justify-between text-xs mb-1">
+              <span class="text-slate-600">Progres Pendampingan</span>
+              <span class="font-semibold text-teal-600">${Math.round(progres)}%</span>
+            </div>
+            <div class="w-full bg-slate-200 rounded-full h-2">
+              <div class="bg-gradient-to-r from-teal-500 to-teal-600 h-2 rounded-full progress-bar" style="width: ${progres}%"></div>
+            </div>
+          </div>
+          
+          <div class="flex flex-wrap gap-2 mb-4">
+            ${getBadge(getField(item, 'nib'), 'nib')}
+            ${getBadge(getField(item, 'sertifikat_halal'), 'halal')}
+            ${getField(item, 'jumlah_karyawan') ? getBadge(getField(item, 'jumlah_karyawan'), 'karyawan') : ''}
+          </div>
+          
+          <button onclick="showDetail(${realIdx})" class="w-full bg-teal-600 hover:bg-teal-700 text-white py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2">
+            <i class="fas fa-eye"></i> Lihat Detail Lengkap
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderTimeline() {
+  const timeline = document.getElementById('timeline');
+  const sortedData = [...filteredData]
+    .filter(item => getField(item, 'tgl_mulai_pendampingan'))
+    .sort((a, b) => new Date(getField(b, 'tgl_mulai_pendampingan')) - new Date(getField(a, 'tgl_mulai_pendampingan')))
+    .slice(0, 10);
+  
+  if (sortedData.length === 0) {
+    timeline.innerHTML = '<p class="text-slate-500 text-sm text-center py-8">Belum ada data timeline</p>';
+    return;
+  }
+  
+  timeline.innerHTML = sortedData.map(item => {
+    const status = getField(item, 'status_pendampingan');
+    const statusColor = status.toLowerCase().includes('selesai') ? 'bg-emerald-500' : 
+                       status.toLowerCase().includes('proses') ? 'bg-amber-500' : 'bg-slate-400';
+    return `
+      <div class="timeline-item relative pl-8 pb-6">
+        <div class="timeline-dot ${statusColor}"></div>
+        <div class="bg-slate-50 rounded-xl p-4">
+          <h4 class="font-semibold text-slate-900 text-sm mb-1">${getField(item, 'nama_bumdes')}</h4>
+          <p class="text-xs text-slate-600 mb-2">Desa ${getField(item, 'nama_desa')}</p>
+          <div class="flex items-center gap-4 text-xs text-slate-500">
+            <span><i class="fas fa-calendar-alt mr-1"></i> ${formatDate(getField(item, 'tgl_mulai_pendampingan'))}</span>
+            <span class="px-2 py-0.5 rounded-full ${statusColor} text-white">${status || 'Dalam Proses'}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function showDetail(idx) {
+  const item = rawData[idx];
+  if (!item) return;
+  
+  document.getElementById('modalTitle').textContent = getField(item, 'nama_bumdes') || 'BUMDes';
+  document.getElementById('modalSubtitle').textContent = `Desa ${getField(item, 'nama_desa') || '-'}`;
+  
+  const detailFields = [
+    { label: 'Ketua/Direktur', value: getField(item, 'ketua'), icon: 'fa-user-tie' },
+    { label: 'No. HP Ketua', value: getField(item, 'no_hp_ketua'), icon: 'fa-phone' },
+    { label: 'Email', value: getField(item, 'email'), icon: 'fa-envelope' },
+    { label: 'Unit Usaha', value: getField(item, 'unit_usaha'), icon: 'fa-briefcase' },
+    { label: 'Omzet/Bulan', value: formatRupiah(parseNumber(getField(item, 'omzet'))), icon: 'fa-chart-line' },
+    { label: 'Penyertaan Modal Desa', value: formatRupiah(parseNumber(getField(item, 'penyertaan_modal_desa'))), icon: 'fa-sack-dollar' },
+    { label: 'NPWP', value: getField(item, 'npwp'), icon: 'fa-id-card' },
+    { label: 'No. Rekening', value: getField(item, 'no_rekening'), icon: 'fa-credit-card' },
+    { label: 'Tanggal Berdiri', value: formatDate(getField(item, 'tanggal_berdiri')), icon: 'fa-calendar-check' },
+    { label: 'Jumlah Karyawan', value: getField(item, 'jumlah_karyawan'), icon: 'fa-users' },
+    { label: 'No. Perdes Pendirian', value: getField(item, 'no_perdes_pendirian'), icon: 'fa-file-contract' },
+    { label: 'No. AHU', value: getField(item, 'no_ahu'), icon: 'fa-stamp' },
+    { label: 'NIB', value: getField(item, 'nib'), icon: 'fa-certificate' },
+    { label: 'Sertifikat Halal', value: getField(item, 'sertifikat_halal'), icon: 'fa-seal' },
+    { label: 'Status Pendampingan', value: getField(item, 'status_pendampingan'), icon: 'fa-tasks' },
+    { label: 'Progres', value: Math.round(parseNumber(getField(item, 'progres'))) + '%', icon: 'fa-bars-progress' }
+  ];
+  
+  const links = [];
+  if (getField(item, 'link_gmaps')) links.push({ label: 'Google Maps', url: getField(item, 'link_gmaps'), icon: 'fa-map-location-dot' });
+  if (getField(item, 'link_foto')) links.push({ label: 'Foto Dokumentasi', url: getField(item, 'link_foto'), icon: 'fa-image' });
+  if (getField(item, 'link_ad_art')) links.push({ label: 'AD/ART', url: getField(item, 'link_ad_art'), icon: 'fa-file-pdf' });
+  
+  document.getElementById('modalContent').innerHTML = `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      ${detailFields.map(f => f.value && f.value !== '-' ? `
+        <div class="bg-slate-50 rounded-xl p-4">
+          <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+            <i class="fas ${f.icon}"></i>
+            <span>${f.label}</span>
+          </div>
+          <p class="font-semibold text-slate-900">${f.value}</p>
+        </div>
+      ` : '').join('')}
+    </div>
+    ${links.length > 0 ? `
+      <div class="border-t border-slate-200 pt-6">
+        <h4 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+          <i class="fas fa-link text-teal-600"></i> Link & Dokumen
+        </h4>
+        <div class="flex flex-wrap gap-3">
+          ${links.map(l => `
+            <a href="${l.url}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-teal-50 text-teal-700 hover:bg-teal-100 rounded-lg transition text-sm font-medium">
+              <i class="fas ${l.icon}"></i> ${l.label}
+            </a>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
+  `;
+  
+  document.getElementById('detailModal').classList.remove('hidden');
+  document.getElementById('detailModal').classList.add('flex');
+}
+
+function applyFilters() {
+  const search = document.getElementById('filterSearch').value.toLowerCase();
+  const unitUsaha = document.getElementById('filterUnitUsaha').value;
+  const omzetMin = parseNumber(document.getElementById('filterOmzet').value);
+  const status = document.getElementById('filterStatus').value;
+  
+  filteredData = rawData.filter(item => {
+    const namaBumdes = getField(item, 'nama_bumdes').toLowerCase();
+    const namaDesa = getField(item, 'nama_desa').toLowerCase();
+    const matchSearch = !search || namaBumdes.includes(search) || namaDesa.includes(search);
+    const matchUnit = !unitUsaha || getField(item, 'unit_usaha') === unitUsaha;
+    const matchOmzet = parseNumber(getField(item, 'omzet')) >= omzetMin;
+    const matchStatus = !status || getField(item, 'status_pendampingan') === status;
+    return matchSearch && matchUnit && matchOmzet && matchStatus;
+  });
+  
+  updateStats();
+  renderCards();
+  updateMap();
+  renderTimeline();
+}
+
+function populateFilters() {
+  const unitUsahaSet = new Set();
+  const statusSet = new Set();
+  
+  rawData.forEach(item => {
+    const unit = getField(item, 'unit_usaha');
+    const status = getField(item, 'status_pendampingan');
+    if (unit) unitUsahaSet.add(unit);
+    if (status) statusSet.add(status);
+  });
+  
+  document.getElementById('filterUnitUsaha').innerHTML = '<option value="">Semua Unit Usaha</option>' + 
+    Array.from(unitUsahaSet).sort().map(u => `<option value="${u}">${u}</option>`).join('');
+  
+  document.getElementById('filterStatus').innerHTML = '<option value="">Semua Status</option>' + 
+    Array.from(statusSet).sort().map(s => `<option value="${s}">${s}</option>`).join('');
+}
+
+function exportToExcel() {
+  const dataToExport = filteredData.map(item => {
+    const obj = {};
+    Object.keys(COLUMN_MAP).forEach(key => {
+      obj[key] = getField(item, key);
+    });
+    return obj;
+  });
+  
+  const ws = XLSX.utils.json_to_sheet(dataToExport);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'BUMDes Barambai');
+  XLSX.writeFile(wb, `Data_BUMDes_Barambai_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+async function loadData() {
+  try {
+    document.getElementById('loading').classList.remove('hidden');
+    const response = await fetch(CSV_URL);
+    const csvText = await response.text();
+    
+    Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        rawData = results.data;
+        filteredData = [...rawData];
+        populateFilters();
+        applyFilters();
+        document.getElementById('loading').classList.add('hidden');
+      },
+      error: (err) => {
+        console.error('Error parsing CSV:', err);
+        alert('Gagal memuat data. Silakan refresh halaman.');
+        document.getElementById('loading').classList.add('hidden');
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching data:', err);
+    alert('Gagal mengambil data dari Google Sheets.');
+    document.getElementById('loading').classList.add('hidden');
+  }
+}
+
+// Event Listeners
+document.getElementById('filterSearch').addEventListener('input', applyFilters);
+document.getElementById('filterUnitUsaha').addEventListener('change', applyFilters);
+document.getElementById('filterOmzet').addEventListener('change', applyFilters);
+document.getElementById('filterStatus').addEventListener('change', applyFilters);
+document.getElementById('btnRefresh').addEventListener('click', loadData);
+document.getElementById('btnExport').addEventListener('click', exportToExcel);
+document.getElementById('btnCloseModal').addEventListener('click', () => {
+  document.getElementById('detailModal').classList.add('hidden');
+  document.getElementById('detailModal').classList.remove('flex');
+});
+document.getElementById('detailModal').addEventListener('click', (e) => {
+  if (e.target.id === 'detailModal') {
+    document.getElementById('detailModal').classList.add('hidden');
+    document.getElementById('detailModal').classList.remove('flex');
+  }
+});
+
+// Init
+window.addEventListener('DOMContentLoaded', () => {
+  initMap();
+  loadData();
+});
+</script>
+<script>(function(){document.addEventListener("click",function(e){var a=e.target.closest("[data-product-id]");if(!a)return;e.preventDefault();var pid=a.getAttribute("data-product-id");if(pid)parent.postMessage({type:"ecto-artifact-link-click",productId:pid},"*")})})();</script>
+</body>
+</html>
